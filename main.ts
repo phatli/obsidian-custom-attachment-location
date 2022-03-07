@@ -10,8 +10,8 @@ interface CustomAttachmentLocationSettings {
 }
 
 const DEFAULT_SETTINGS: CustomAttachmentLocationSettings = {
-    attachmentFolderPath: './assets/${filename}',
-    pastedImageFileName: 'image-${date}',
+    attachmentFolderPath: 'media/${foldername}/${filename}',
+    pastedImageFileName: '${filename}-${date}',
     dateTimeFormat: 'YYYYMMDDHHmmssSSS',
     autoRenameFolder: true,
     autoRenameFiles: false
@@ -96,10 +96,11 @@ export default class CustomAttachmentLocation extends Plugin {
         this.app.vault.setConfig('attachmentFolderPath', path);
     }
 
-    getAttachmentFolderPath(mdFileName: string)
+    getAttachmentFolderPath(mdFileName: string, folderName: string)
     {
         let path = new TemplateString(this.settings.attachmentFolderPath).interpolate({
-            filename: mdFileName
+            filename: mdFileName,
+            foldername: folderName,
         });
         return path;
     }
@@ -107,22 +108,24 @@ export default class CustomAttachmentLocation extends Plugin {
     getAttachmentFolderFullPath(mdFolderPath: string, mdFileName: string)
     {
         let attachmentFolder = '';
+        let folderName: string = mdFolderPath.split("/").pop();
 
         if(this.useRelativePath)
-            attachmentFolder = Path.join(mdFolderPath, this.getAttachmentFolderPath(mdFileName));
+            attachmentFolder = Path.join(mdFolderPath, this.getAttachmentFolderPath(mdFileName, folderName));
         else
         {
-            attachmentFolder = this.getAttachmentFolderPath(mdFileName);
+            attachmentFolder = this.getAttachmentFolderPath(mdFileName, folderName);
         }
         return normalizePath(attachmentFolder);
     }
 
-    getPastedImageFileName(mdFileName: string)
+    getPastedImageFileName(mdFileName: string, folderName: string)
     {
         let datetime = moment().format(this.settings.dateTimeFormat);
         let name = new TemplateString(this.settings.pastedImageFileName).interpolate({
             filename: mdFileName,
-            date: datetime
+            date: datetime,
+            foldername: folderName,
         });
         return name;
     }
@@ -133,8 +136,8 @@ export default class CustomAttachmentLocation extends Plugin {
 
         let mdFileName = view.file.basename;
         let mdFolderPath: string = Path.dirname(view.file.path);
-
-        let path = this.getAttachmentFolderPath(mdFileName);
+        let folderName: string = mdFolderPath.split("/").pop();
+        let path = this.getAttachmentFolderPath(mdFileName, folderName);
         let fullPath = this.getAttachmentFolderFullPath(mdFolderPath, mdFileName);
 
         this.updateAttachmentFolderConfig(path);
@@ -167,7 +170,7 @@ export default class CustomAttachmentLocation extends Plugin {
 
                 let img = await blobToArrayBuffer(pasteImage);
 
-                let name = this.getPastedImageFileName(mdFileName);
+                let name = this.getPastedImageFileName(mdFileName, folderName);
                 // let name = 'image-' + moment().format('YYYYMMDDHHmmssSSS');
 
 
@@ -185,8 +188,8 @@ export default class CustomAttachmentLocation extends Plugin {
 
         let mdFileName = view.file.basename;
         let mdFolderPath: string = Path.dirname(view.file.path);
-
-        let path = this.getAttachmentFolderPath(mdFileName);
+        let folderName: string = mdFolderPath.split("/").pop();
+        let path = this.getAttachmentFolderPath(mdFileName, folderName);
         let fullPath = this.getAttachmentFolderFullPath(mdFolderPath, mdFileName);
 
         if(!this.useRelativePath && !await this.adapter.exists(fullPath))
@@ -207,6 +210,7 @@ export default class CustomAttachmentLocation extends Plugin {
         let oldName = Path.basename(oldFilePath, '.md');
 
         let mdFolderPath: string = Path.dirname(newFile.path);
+        let folderName: string = mdFolderPath.split("/").pop();
         let oldAttachmentFolderPath: string = this.getAttachmentFolderFullPath(mdFolderPath, oldName);
         let newAttachmentFolderPath: string = this.getAttachmentFolderFullPath(mdFolderPath, newName);
 
@@ -219,7 +223,7 @@ export default class CustomAttachmentLocation extends Plugin {
                 return;
 
             await this.app.fileManager.renameFile(tfolder, newAttachmentFolderPath);
-            this.updateAttachmentFolderConfig(this.getAttachmentFolderPath(newName));
+            this.updateAttachmentFolderConfig(this.getAttachmentFolderPath(newName,folderName));
         }
 
         //if autoRenameFiles is off
@@ -278,9 +282,9 @@ class CustomAttachmentLocationSettingTab extends PluginSettingTab {
 
         let el = new Setting(containerEl)
             .setName('Location for New Attachments')
-            .setDesc('Start with "./" to use relative path. Available variables: ${filename}.(NOTE: DO NOT start with "/" or end with "/". )')
+            .setDesc('Start with "./" to use relative path. Available variables: ${filename} ${foldername}.(NOTE: DO NOT start with "/" or end with "/". )')
             .addText(text => text
-                .setPlaceholder('./assets/${filename}')
+                .setPlaceholder('media/${foldername}/${filename}')
                 .setValue(this.plugin.settings.attachmentFolderPath)
                 .onChange(async (value: string) => {
                     console.log('attachmentFolder: ' + value);
@@ -299,7 +303,7 @@ class CustomAttachmentLocationSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Pasted Image Name')
-            .setDesc('Available variables: ${filename}, ${date}.')
+            .setDesc('Available variables: ${filename}, ${date}, ${foldername}.')
             .addText(text => text
                 .setPlaceholder('image-${date}')
                 .setValue(this.plugin.settings.pastedImageFileName)
