@@ -108,7 +108,7 @@ export default class CustomAttachmentLocation extends Plugin {
     getAttachmentFolderFullPath(mdFolderPath: string, mdFileName: string)
     {
         let attachmentFolder = '';
-        let folderName: string = mdFolderPath.split("/").pop();
+        let folderName: string = mdFolderPath.split("/").join("_");
 
         if(this.useRelativePath)
             attachmentFolder = Path.join(mdFolderPath, this.getAttachmentFolderPath(mdFileName, folderName));
@@ -136,7 +136,7 @@ export default class CustomAttachmentLocation extends Plugin {
 
         let mdFileName = view.file.basename;
         let mdFolderPath: string = Path.dirname(view.file.path);
-        let folderName: string = mdFolderPath.split("/").pop();
+        let folderName: string = mdFolderPath.split("/").join("_");
         let path = this.getAttachmentFolderPath(mdFileName, folderName);
         let fullPath = this.getAttachmentFolderFullPath(mdFolderPath, mdFileName);
 
@@ -188,7 +188,7 @@ export default class CustomAttachmentLocation extends Plugin {
 
         let mdFileName = view.file.basename;
         let mdFolderPath: string = Path.dirname(view.file.path);
-        let folderName: string = mdFolderPath.split("/").pop();
+        let folderName: string = mdFolderPath.split("/").join("_");
         let path = this.getAttachmentFolderPath(mdFileName, folderName);
         let fullPath = this.getAttachmentFolderFullPath(mdFolderPath, mdFileName);
 
@@ -210,7 +210,7 @@ export default class CustomAttachmentLocation extends Plugin {
         let oldName = Path.basename(oldFilePath, '.md');
 
         let mdFolderPath: string = Path.dirname(newFile.path);
-        let folderName: string = mdFolderPath.split("/").pop();
+        let folderName: string = mdFolderPath.split("/").join("_");
         let oldAttachmentFolderPath: string = this.getAttachmentFolderFullPath(mdFolderPath, oldName);
         let newAttachmentFolderPath: string = this.getAttachmentFolderFullPath(mdFolderPath, newName);
 
